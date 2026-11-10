@@ -15014,7 +15014,6 @@ function Dashboard() {
     const f = () => {
       if (document.visibilityState === "visible") {
         refrescar(x => x + 1);
-        setDia(d => d > hoyISO() ? hoyISO() : d);
       }
     };
     document.addEventListener("visibilitychange", f);
@@ -15109,7 +15108,7 @@ function Dashboard() {
   }), " ", esHoy ? "Hoy" : /*#__PURE__*/React.createElement("button", {
     className: "underline underline-offset-2",
     onClick: () => setDia(hoyISO())
-  }, "Volver a hoy"), !esHoy && /*#__PURE__*/React.createElement("button", {
+  }, "Volver a hoy"), /*#__PURE__*/React.createElement("button", {
     className: "dia-btn",
     onClick: () => setDia(sumarDias(dia, 1)),
     "aria-label": "D\xEDa siguiente"
