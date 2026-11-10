@@ -1,5 +1,5 @@
-// versión 9c65feda
-const C="comidas-9c65feda";
+// versión 3bc7b1e8
+const C="comidas-3bc7b1e8";
 const CORE=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 const CDN=/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|cdn\.tailwindcss\.com|fonts\.(googleapis|gstatic)\.com)$/;
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(CORE)));self.skipWaiting();});
