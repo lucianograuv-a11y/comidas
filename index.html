@@ -13796,7 +13796,8 @@ function Detalle({
     [tam, setTam] = useState("normal");
   const [hora, setHora] = useState(inicial?.hora || ahora());
   const [comida, setComida] = useState(inicial?.comida || comidaDeHora(ahora()));
-  const [g, setG] = useState(inicial?.g ?? f.porciones[0].g);
+  const [cant, setCant] = useState(inicial?.cant || 1);
+  const [g, setG] = useState(inicial ? r0((inicial.g ?? f.porciones[0].g) / (inicial.cant || 1)) : f.porciones[0].g); // gramos de UNA unidad
   const primera = useRef(true);
   useEffect(() => {
     if (primera.current) {
@@ -13805,7 +13806,11 @@ function Detalle({
     }
     setG(r0(f.porciones[porc].g * TAMANOS.find(t => t.id === tam).k));
   }, [porc, tam]);
-  const m = B.macros(f, g || 0);
+  const total = (g || 0) * cant;
+  const m = B.macros(f, total);
+  const menos = () => setCant(c => c > 1 ? c - 1 : 0.5),
+    mas = () => setCant(c => c < 1 ? 1 : c + 1);
+  const verCant = c => c === 0.5 ? "½" : String(c).replace(".", ",");
   return /*#__PURE__*/React.createElement("div", {
     className: "space-y-4"
   }, /*#__PURE__*/React.createElement("div", {
@@ -13845,11 +13850,33 @@ function Detalle({
     key: t.id,
     className: `chip justify-center ${t.id === tam ? "chip-on" : ""}`,
     onClick: () => setTam(t.id)
-  }, t.n)))), /*#__PURE__*/React.createElement("label", {
+  }, t.n)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "lbl"
+  }, "Cantidad"), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn-icon",
+    onClick: menos,
+    disabled: cant <= 0.5,
+    "aria-label": "Una unidad menos"
+  }, /*#__PURE__*/React.createElement(Minus, {
+    size: 18
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "font-display text-2xl font-bold tabular-nums w-12 text-center",
+    "aria-live": "polite"
+  }, verCant(cant)), /*#__PURE__*/React.createElement("button", {
+    className: "btn-icon",
+    onClick: mas,
+    "aria-label": "Una unidad m\xE1s"
+  }, /*#__PURE__*/React.createElement(Plus, {
+    size: 18
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "text-sm text-[var(--muted)]"
+  }, "\xD7 ", f.porciones[porc].n))), /*#__PURE__*/React.createElement("label", {
     className: "block"
   }, /*#__PURE__*/React.createElement("span", {
     className: "lbl"
-  }, "Gramos (si los sabes)"), /*#__PURE__*/React.createElement("input", {
+  }, cant === 1 ? "Gramos (si los sabes)" : "Gramos de cada unidad"), /*#__PURE__*/React.createElement("input", {
     id: "det-g",
     type: "number",
     inputMode: "numeric",
@@ -13869,7 +13896,7 @@ function Detalle({
     className: "font-display text-2xl font-bold tabular-nums"
   }, r0(m.kcal), " kcal"), /*#__PURE__*/React.createElement("span", {
     className: "text-sm text-[var(--muted)] tabular-nums"
-  }, r0(g), " g")), /*#__PURE__*/React.createElement(BarraPct, {
+  }, cant === 1 ? `${r0(g)} g` : `${verCant(cant)} × ${r0(g)} g = ${r0(total)} g`)), /*#__PURE__*/React.createElement(BarraPct, {
     m: m
   })), f.receta && /*#__PURE__*/React.createElement("details", {
     className: "text-sm text-[var(--muted)]"
@@ -13883,7 +13910,9 @@ function Detalle({
     className: "btn-main w-full",
     onClick: () => onListo(comida, {
       hora,
-      ...entrada(f, g)
+      ...entrada(f, total, {
+        cant
+      })
     })
   }, inicial ? /*#__PURE__*/React.createElement(Check, {
     size: 18
@@ -14217,7 +14246,8 @@ function Editar({
     inicial: {
       hora,
       comida,
-      g: f === f0 ? e.g : f.porciones[0].g
+      g: f === f0 ? e.g : f.porciones[0].g,
+      cant: f === f0 ? e.cant || 1 : 1
     },
     textoBoton: "Guardar cambios",
     onCambiar: () => setModo("elegir"),
@@ -14228,6 +14258,7 @@ function Editar({
       nombre: ne.nombre,
       tipo: ne.tipo,
       g: ne.g,
+      cant: ne.cant,
       m: ne.m,
       comps: undefined,
       ejemplo: false
@@ -15075,7 +15106,7 @@ function Dashboard() {
       className: "flex-1 min-w-0"
     }, /*#__PURE__*/React.createElement("span", {
       className: "block text-sm font-semibold truncate"
-    }, e.nombre, e.ejemplo && /*#__PURE__*/React.createElement("span", {
+    }, e.cant && e.cant !== 1 ? `${e.cant === 0.5 ? "½" : String(e.cant).replace(".", ",")} × ` : "", e.nombre, e.ejemplo && /*#__PURE__*/React.createElement("span", {
       className: "ml-1.5 text-[11px] font-normal text-[var(--muted)]"
     }, "ejemplo")), /*#__PURE__*/React.createElement("span", {
       className: "block text-[12px] text-[var(--muted)] tabular-nums truncate"
