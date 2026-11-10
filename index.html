@@ -14033,9 +14033,12 @@ function BuscadorUI({
   }, /*#__PURE__*/React.createElement(Loader2, {
     size: 16,
     className: "girar"
-  }), " Buscando en marcas\u2026") : marcas.estado === "error" ? /*#__PURE__*/React.createElement("p", {
+  }), " Buscando en marcas\u2026") : marcas.estado === "error" ? /*#__PURE__*/React.createElement("div", {
     className: "text-sm text-[var(--est)]"
-  }, "No pude conectarme a internet. Int\xE9ntalo de nuevo.") : marcas.estado === "vacio" ? /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement("p", null, "Open Food Facts no respondi\xF3. Permite unas 10 b\xFAsquedas por minuto: espera un minuto y vuelve a intentarlo (o revisa tu internet)."), /*#__PURE__*/React.createElement("button", {
+    className: "btn-sec mt-2",
+    onClick: buscarMarcas
+  }, "Reintentar")) : marcas.estado === "vacio" ? /*#__PURE__*/React.createElement("p", {
     className: "text-sm text-[var(--muted)]"
   }, "Ninguna marca con datos completos para \xAB", t, "\xBB. Prueba con otra palabra o agr\xE9galo desde su etiqueta.") : /*#__PURE__*/React.createElement("div", {
     className: "rounded-2xl border border-[var(--line)] p-3"
@@ -14558,18 +14561,15 @@ async function offPorCodigo(code) {
 }
 async function offBuscar(texto) {
   const url = pais => `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(texto)}&json=1&page_size=15${pais ? "&countries_tags_en=chile" : ""}&fields=${OFF_CAMPOS}`;
-  const pedir = async u => {
-    try {
-      return await (await fetch(u)).json();
-    } catch {
-      await new Promise(r => setTimeout(r, 1200));
-      return await (await fetch(u)).json();
-    }
-  };
+  const k = B.norm(texto);
+  if (CACHE_OFF[k]) return CACHE_OFF[k];
+  // Open Food Facts permite ~10 búsquedas por minuto: una consulta para Chile y, solo si no hay nada, una mundial.
+  const pedir = async u => (await fetch(u)).json();
   let j = await pedir(url(true));
   if (!(j.products || []).length) j = await pedir(url(false));
-  return (j.products || []).map(offAFicha).filter(x => x.completo);
+  return CACHE_OFF[k] = (j.products || []).map(offAFicha).filter(x => x.completo);
 }
+const CACHE_OFF = {};
 function cargarScript(src) {
   return new Promise((ok, mal) => {
     if (document.querySelector(`script[src="${src}"]`)) return ok();
