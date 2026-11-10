@@ -56,6 +56,9 @@ h1,h2{text-wrap:balance}
 button{cursor:pointer}
 .registro:hover{background:var(--bg)}
 .dia-btn{padding:0 6px;font-size:20px;line-height:1;color:var(--fg)}
+.mira{position:absolute;left:10%;right:10%;top:34%;height:32%;border:3px solid var(--water);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+.girar{animation:girar 1s linear infinite}
+@keyframes girar{to{transform:rotate(360deg)}}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .hoja{animation:sube .28s cubic-bezier(.2,.9,.3,1)}
 @keyframes sube{from{transform:translateY(40px);opacity:.4}}
@@ -13379,14 +13382,14 @@ const {
   useRef
 } = React;
 const {
-  Camera,
+  ScanBarcode,
+  Globe,
+  Loader2,
   Search,
   GlassWater,
   Plus,
   Minus,
   Clock,
-  Sparkles,
-  ClipboardCopy,
   ClipboardList,
   Utensils,
   Coffee,
@@ -13896,10 +13899,38 @@ function BuscadorUI({
   onPlato,
   onPendiente,
   onEtiqueta,
+  onMarca,
   autoFocus = true
 }) {
   const [q, setQ] = useState(""),
     [tams, setTams] = useState({});
+  const [marcas, setMarcas] = useState({
+    q: "",
+    estado: "",
+    lista: []
+  });
+  const buscarMarcas = async () => {
+    const qq = q.trim();
+    setMarcas({
+      q: qq,
+      estado: "cargando",
+      lista: []
+    });
+    try {
+      const lista = await offBuscar(qq);
+      setMarcas({
+        q: qq,
+        estado: lista.length ? "ok" : "vacio",
+        lista
+      });
+    } catch {
+      setMarcas({
+        q: qq,
+        estado: "error",
+        lista: []
+      });
+    }
+  };
   const res = useMemo(() => B.buscar(q, db.idx, 8), [q, db]);
   const plato = useMemo(() => onPlato ? B.armarPlato(q, db.idx) : null, [q, db]);
   const exacto = res[0] && res[0].puntaje >= 1.9;
@@ -13990,7 +14021,47 @@ function BuscadorUI({
     className: "font-semibold text-[var(--est)]"
   }, "No est\xE1 en la base."), /*#__PURE__*/React.createElement("p", {
     className: "mt-1"
-  }, "An\xF3talo igual y lo estimamos en la revisi\xF3n semanal, o agr\xE9galo desde su etiqueta si es un producto envasado.")), t.length > 2 && !exacto && /*#__PURE__*/React.createElement("div", {
+  }, "An\xF3talo igual y lo estimamos en la revisi\xF3n semanal, o agr\xE9galo desde su etiqueta si es un producto envasado.")), onMarca && t.length > 2 && /*#__PURE__*/React.createElement("div", {
+    className: "mt-3"
+  }, marcas.q !== t || !marcas.estado ? /*#__PURE__*/React.createElement("button", {
+    className: "btn-sec w-full justify-center",
+    onClick: buscarMarcas
+  }, /*#__PURE__*/React.createElement(Globe, {
+    size: 16
+  }), " Buscar \xAB", t, "\xBB en marcas (Open Food Facts)") : marcas.estado === "cargando" ? /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-[var(--muted)] flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Loader2, {
+    size: 16,
+    className: "girar"
+  }), " Buscando en marcas\u2026") : marcas.estado === "error" ? /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-[var(--est)]"
+  }, "No pude conectarme a internet. Int\xE9ntalo de nuevo.") : marcas.estado === "vacio" ? /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-[var(--muted)]"
+  }, "Ninguna marca con datos completos para \xAB", t, "\xBB. Prueba con otra palabra o agr\xE9galo desde su etiqueta.") : /*#__PURE__*/React.createElement("div", {
+    className: "rounded-2xl border border-[var(--line)] p-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 text-xs uppercase tracking-[.12em] font-semibold text-[var(--accent)]"
+  }, /*#__PURE__*/React.createElement(Globe, {
+    size: 14
+  }), " Marcas en Open Food Facts"), /*#__PURE__*/React.createElement("ul", {
+    className: "mt-2 divide-y divide-[var(--line)]"
+  }, marcas.lista.map(r => /*#__PURE__*/React.createElement("li", {
+    key: r.codigo
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "w-full flex items-center gap-3 py-2.5 text-left",
+    onClick: () => onMarca(r.ficha)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-semibold truncate"
+  }, r.nombre), /*#__PURE__*/React.createElement("div", {
+    className: "text-[12px] text-[var(--muted)] truncate tabular-nums"
+  }, r0(r.valores.kcal), " kcal \xB7 P ", r.valores.p, " g por 100 g", r.porG ? ` · porción ${r.porN}` : "")), /*#__PURE__*/React.createElement(Plus, {
+    size: 16,
+    className: "text-[var(--accent)] shrink-0"
+  }))))), /*#__PURE__*/React.createElement("p", {
+    className: "text-[12px] text-[var(--muted)] mt-2"
+  }, "Datos que la comunidad copi\xF3 de la etiqueta. Si algo no calza con tu envase, ed\xEDtalo despu\xE9s."))), t.length > 2 && !exacto && /*#__PURE__*/React.createElement("div", {
     className: "mt-3 grid gap-2"
   }, onPendiente && /*#__PURE__*/React.createElement("button", {
     className: "btn-sec justify-center",
@@ -14014,6 +14085,7 @@ function Busqueda({
   onAgregar,
   onNoEncontrado,
   onEtiqueta,
+  onMarca,
   onClose
 }) {
   const [sel, setSel] = useState(inicialSel || null);
@@ -14039,6 +14111,10 @@ function Busqueda({
     db: db,
     onElegir: setSel,
     onEtiqueta: onEtiqueta,
+    onMarca: f => {
+      onMarca(f);
+      setSel(f);
+    },
     onPendiente: t => {
       onAgregar(c0, {
         uid: uid(),
@@ -14285,18 +14361,21 @@ function Editar({
 /* ───────── producto desde su etiqueta ───────── */
 function Etiqueta({
   nombreInicial,
+  previo,
   onGuardar,
   onClose
 }) {
   const [txt, setTxt] = useState("");
+  const pv = previo?.valores || {},
+    vacio = x => x === null || x === undefined ? "" : x;
   const [v, setV] = useState({
-    nombre: nombreInicial || "",
-    kcal: "",
-    p: "",
-    c: "",
-    g: "",
-    porN: "1 porción",
-    porG: ""
+    nombre: previo?.nombre || nombreInicial || "",
+    kcal: vacio(pv.kcal),
+    p: vacio(pv.p),
+    c: vacio(pv.c),
+    g: vacio(pv.g),
+    porN: previo?.porN || "1 porción",
+    porG: previo?.porG || ""
   });
   const set = (k, x) => setV({
     ...v,
@@ -14321,7 +14400,11 @@ function Etiqueta({
   return /*#__PURE__*/React.createElement(Hoja, {
     titulo: "Producto desde su etiqueta",
     onClose: onClose
-  }, /*#__PURE__*/React.createElement("p", {
+  }, previo?.codigo && /*#__PURE__*/React.createElement("p", {
+    className: "text-sm rounded-2xl bg-[var(--est-bg)] p-3 mb-3"
+  }, "El c\xF3digo ", /*#__PURE__*/React.createElement("b", {
+    className: "tabular-nums"
+  }, previo.codigo), " ", previo.nombre ? "está en Open Food Facts, pero le faltan datos" : "todavía no está en Open Food Facts", ". Compl\xE9talo con la etiqueta del envase y queda guardado con su c\xF3digo: la pr\xF3xima vez que lo escanees aparece al tiro."), /*#__PURE__*/React.createElement("p", {
     className: "text-sm text-[var(--muted)]"
   }, "Pega el texto de la etiqueta (de la p\xE1gina del supermercado, por ejemplo) o escribe los n\xFAmeros de la columna \xABpor 100 g\xBB. Lo guardas una vez y queda para siempre."), /*#__PURE__*/React.createElement("textarea", {
     id: "txt-etiqueta",
@@ -14397,6 +14480,7 @@ function Etiqueta({
     disabled: !listo,
     onClick: () => onGuardar({
       id: "mio_" + uid(),
+      codigo: previo?.codigo,
       nombre: v.nombre.trim(),
       alias: [],
       cat: "Mis productos",
@@ -14418,90 +14502,219 @@ function Etiqueta({
   }), " Guardar en mis productos"));
 }
 
-/* ───────── foto con IA (vía Claude, gratis) ───────── */
-const PROMPT_FOTO = `Te adjunto una foto de lo que comí. Estima cada alimento del plato y respóndeme SOLO con líneas así, una por alimento:
-nombre; gramos; kcal; proteína g; carbohidratos g; grasas g
-Usa porciones realistas para Chile. Si no estás seguro, elige el valor medio y no agregues texto extra.`;
-function Foto({
-  comidaInicial,
-  onAgregar,
-  onClose
-}) {
-  const [txt, setTxt] = useState(""),
-    [copiado, setCopiado] = useState(false);
-  const lineas = txt.split("\n").map(l => l.split(/[;|\t]/).map(s => s.trim())).filter(p => p.length >= 6 && !isNaN(parseFloat(p[2]))).map(p => ({
-    nombre: p[0],
-    g: +p[1] || 0,
-    m: {
-      kcal: +p[2] || 0,
-      p: +p[3] || 0,
-      c: +p[4] || 0,
-      g: +p[5] || 0
-    }
-  }));
-  const copiar = async () => {
+/* ───────── Open Food Facts: base abierta de productos envasados (todas las marcas) ───────── */
+const OFF_CAMPOS = "code,product_name,product_name_es,brands,nutriments,serving_size,serving_quantity";
+const numOFF = x => x === undefined || x === null || x === "" || isNaN(+x) ? null : +x;
+function offAFicha(p) {
+  const n = p.nutriments || {};
+  let kcal = numOFF(n["energy-kcal_100g"]);
+  if (kcal === null && numOFF(n.energy_100g) !== null) kcal = Math.round(n.energy_100g / 4.184);
+  const v = {
+    kcal,
+    p: numOFF(n.proteins_100g),
+    c: numOFF(n.carbohydrates_100g),
+    g: numOFF(n.fat_100g)
+  };
+  const marca = (p.brands || "").split(",")[0].trim();
+  let nombre = (p.product_name_es || p.product_name || "").trim();
+  if (marca && nombre && !B.norm(nombre).includes(B.norm(marca))) nombre += " " + marca;
+  const completo = nombre && Object.values(v).every(x => x !== null);
+  const sq = numOFF(p.serving_quantity);
+  return {
+    completo,
+    codigo: p.code,
+    valores: v,
+    nombre,
+    porN: p.serving_size || "1 porción",
+    porG: sq && sq > 0 ? sq : "",
+    ficha: completo ? {
+      id: "off_" + p.code,
+      codigo: p.code,
+      nombre,
+      alias: [marca].filter(Boolean),
+      cat: "Mis productos",
+      tipo: "etiqueta",
+      fuente: `Open Food Facts, código ${p.code} (datos subidos desde la etiqueta; revísalos contra tu envase)`,
+      por100: v,
+      pct: B.pct(v.p, v.c, v.g),
+      revisar: false,
+      porciones: [...(sq && sq > 0 ? [{
+        n: p.serving_size || "1 porción",
+        g: sq
+      }] : []), {
+        n: "100 g",
+        g: 100
+      }]
+    } : null
+  };
+}
+async function offPorCodigo(code) {
+  const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=${OFF_CAMPOS}`);
+  const j = await r.json();
+  return j && j.status === 1 && j.product ? offAFicha({
+    ...j.product,
+    code
+  }) : null;
+}
+async function offBuscar(texto) {
+  const url = pais => `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(texto)}&json=1&page_size=15${pais ? "&countries_tags_en=chile" : ""}&fields=${OFF_CAMPOS}`;
+  const pedir = async u => {
     try {
-      await navigator.clipboard.writeText(PROMPT_FOTO);
-      setCopiado(true);
+      return await (await fetch(u)).json();
     } catch {
-      document.getElementById("prompt-foto").select();
+      await new Promise(r => setTimeout(r, 1200));
+      return await (await fetch(u)).json();
     }
   };
-  return /*#__PURE__*/React.createElement(Hoja, {
-    titulo: "Escanear plato con foto",
-    onClose: onClose
-  }, /*#__PURE__*/React.createElement("ol", {
-    className: "space-y-4 text-sm"
-  }, /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("b", null, "1. Copia la instrucci\xF3n."), /*#__PURE__*/React.createElement("textarea", {
-    id: "prompt-foto",
-    readOnly: true,
-    className: "campo mt-2 h-24 text-[12px]",
-    value: PROMPT_FOTO
-  }), /*#__PURE__*/React.createElement("button", {
-    className: "btn-sec mt-2",
-    onClick: copiar
-  }, /*#__PURE__*/React.createElement(ClipboardCopy, {
-    size: 16
-  }), " ", copiado ? "Copiada" : "Copiar instrucción")), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("b", null, "2. Abre Claude, adjunta la foto y pega la instrucci\xF3n."), " ", /*#__PURE__*/React.createElement("a", {
-    className: "text-[var(--accent)] font-semibold underline underline-offset-2",
-    href: "https://claude.ai/new",
-    target: "_blank",
-    rel: "noopener"
-  }, "Abrir Claude")), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("b", null, "3. Pega aqu\xED lo que te respondi\xF3."), /*#__PURE__*/React.createElement("textarea", {
-    id: "resp-foto",
-    className: "campo mt-2 h-24 text-[12px]",
-    placeholder: "Tteokbokki; 300; 560; 14; 110; 6\nHuevo duro; 50; 78; 6; 1; 5",
-    value: txt,
-    onChange: e => setTxt(e.target.value)
-  }))), !!lineas.length && /*#__PURE__*/React.createElement("ul", {
-    className: "mt-3 space-y-1 text-sm"
-  }, lineas.map((l, i) => /*#__PURE__*/React.createElement("li", {
-    key: i,
-    className: "flex justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, l.nombre), /*#__PURE__*/React.createElement("span", {
-    className: "tabular-nums text-[var(--muted)]"
-  }, l.g, " g \xB7 ", r0(l.m.kcal), " kcal")))), /*#__PURE__*/React.createElement("button", {
-    className: "btn-main w-full mt-4",
-    disabled: !lineas.length,
-    onClick: () => {
-      const h = ahora();
-      lineas.forEach(l => onAgregar(comidaInicial || comidaDeHora(h), {
-        uid: uid(),
-        id: "foto",
-        nombre: l.nombre,
-        tipo: "estimado",
-        g: l.g,
-        m: l.m,
-        hora: h,
-        porClaude: true
-      }));
-      onClose();
+  let j = await pedir(url(true));
+  if (!(j.products || []).length) j = await pedir(url(false));
+  return (j.products || []).map(offAFicha).filter(x => x.completo);
+}
+function cargarScript(src) {
+  return new Promise((ok, mal) => {
+    if (document.querySelector(`script[src="${src}"]`)) return ok();
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = ok;
+    s.onerror = mal;
+    document.head.appendChild(s);
+  });
+}
+
+/* ───────── escáner de código de barras ───────── */
+function Escaner({
+  mios,
+  onListo,
+  onSinDatos,
+  onClose
+}) {
+  const video = useRef(),
+    [estado, setEstado] = useState("iniciando"),
+    [codigo, setCodigo] = useState(""),
+    [msg, setMsg] = useState("");
+  const buscando = useRef(false),
+    parar = useRef(() => {});
+  const resolver = async code => {
+    if (buscando.current) return;
+    buscando.current = true;
+    parar.current();
+    setEstado("buscando");
+    setCodigo(code);
+    const mio = mios.find(f => f.codigo === code);
+    if (mio) return onListo(mio, false);
+    try {
+      const r = await offPorCodigo(code);
+      if (r && r.completo) return onListo(r.ficha, true);
+      onSinDatos(r || {
+        codigo: code,
+        valores: {},
+        nombre: ""
+      });
+    } catch {
+      setEstado("error");
+      setMsg("No pude conectarme a internet para buscar el código. Inténtalo de nuevo o agrégalo desde su etiqueta.");
+      buscando.current = false;
     }
-  }, /*#__PURE__*/React.createElement(Sparkles, {
-    size: 18
-  }), " Agregar ", lineas.length || "", " alimento", lineas.length === 1 ? "" : "s"), /*#__PURE__*/React.createElement("p", {
+  };
+  useEffect(() => {
+    let vivo = true,
+      stream,
+      timer,
+      lector;
+    (async () => {
+      try {
+        if ("BarcodeDetector" in window) {
+          const det = new window.BarcodeDetector({
+            formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"]
+          });
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "environment"
+            }
+          });
+          if (!vivo) return stream.getTracks().forEach(t => t.stop());
+          video.current.srcObject = stream;
+          await video.current.play();
+          setEstado("mirando");
+          const ciclo = async () => {
+            if (!vivo) return;
+            try {
+              const c = await det.detect(video.current);
+              if (c[0]) return resolver(c[0].rawValue);
+            } catch {}
+            timer = setTimeout(ciclo, 200);
+          };
+          ciclo();
+        } else {
+          await cargarScript("https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js");
+          lector = new window.ZXing.BrowserMultiFormatReader();
+          setEstado("mirando");
+          await lector.decodeFromConstraints({
+            video: {
+              facingMode: "environment"
+            }
+          }, video.current, res => {
+            if (res && vivo) resolver(res.getText());
+          });
+        }
+      } catch {
+        if (vivo) {
+          setEstado("sin-camara");
+          setMsg("No pude abrir la cámara. Revisa que le diste permiso a la app (candado o ⋮ → Configuración del sitio → Cámara), o escribe el número del código abajo.");
+        }
+      }
+    })();
+    parar.current = () => {
+      vivo = false;
+      clearTimeout(timer);
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      if (lector) lector.reset();
+    };
+    return () => parar.current();
+  }, []);
+  return /*#__PURE__*/React.createElement(Hoja, {
+    titulo: "Escanear c\xF3digo de barras",
+    onClose: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "relative rounded-2xl overflow-hidden bg-black aspect-[4/3]",
+    style: {
+      maxWidth: "100%"
+    }
+  }, /*#__PURE__*/React.createElement("video", {
+    ref: video,
+    className: "w-full h-full object-cover",
+    playsInline: true,
+    muted: true
+  }), estado === "mirando" && /*#__PURE__*/React.createElement("div", {
+    className: "mira",
+    "aria-hidden": "true"
+  }), estado !== "mirando" && /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-0 grid place-items-center text-white text-sm p-6 text-center"
+  }, estado === "iniciando" ? "Abriendo la cámara…" : estado === "buscando" ? `Buscando ${codigo}…` : "Cámara no disponible")), /*#__PURE__*/React.createElement("p", {
+    className: "text-[12px] text-[var(--muted)] mt-2"
+  }, estado === "mirando" ? "Apunta al código de barras del envase. Se lee solo." : msg), /*#__PURE__*/React.createElement("form", {
+    className: "mt-4 flex gap-2",
+    onSubmit: e => {
+      e.preventDefault();
+      const c = codigo.replace(/\D/g, "");
+      if (c.length >= 6) {
+        buscando.current = false;
+        resolver(c);
+      }
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    id: "codigo-manual",
+    className: "campo flex-1",
+    inputMode: "numeric",
+    placeholder: "O escribe los n\xFAmeros del c\xF3digo",
+    value: codigo,
+    onChange: e => setCodigo(e.target.value)
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "btn-main shrink-0",
+    type: "submit"
+  }, "Buscar")), /*#__PURE__*/React.createElement("p", {
     className: "text-[12px] text-[var(--muted)] mt-3"
-  }, "La foto no pasa por esta app: solo se la muestras a Claude. Todo lo que llegue as\xED queda marcado como estimado y lo puedes editar despu\xE9s."));
+  }, "Busca en Open Food Facts, una base abierta con productos de muchas marcas, chilenas y extranjeras. Lo que encuentres queda guardado en tu tel\xE9fono para la pr\xF3xima vez."));
 }
 
 /* ───────── revisión semanal ───────── */
@@ -14679,6 +14892,10 @@ function Dashboard() {
     ...s,
     noEnc: s.noEnc.includes(t) ? s.noEnc : [...s.noEnc, t]
   }));
+  const guardarMio = f => setEstado(s => ({
+    ...s,
+    mios: [...s.mios.filter(x => x.id !== f.id && !(f.codigo && x.codigo === f.codigo)), f]
+  }));
   const hayEjemplos = items.some(e => e.ejemplo);
   const esHoy = dia === hoyISO();
   const fecha = new Date(dia + "T12:00:00").toLocaleDateString("es-CL", {
@@ -14784,11 +15001,11 @@ function Dashboard() {
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn-hero",
     onClick: () => setHoja({
-      tipo: "foto"
+      tipo: "escaner"
     })
-  }, /*#__PURE__*/React.createElement(Camera, {
+  }, /*#__PURE__*/React.createElement(ScanBarcode, {
     size: 22
-  }), /*#__PURE__*/React.createElement("span", null, "Escanear plato", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("small", null, "con foto (IA)"))), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("span", null, "Escanear", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("small", null, "c\xF3digo de barras"))), /*#__PURE__*/React.createElement("button", {
     className: "btn-hero btn-hero-alt",
     onClick: () => setHoja({
       tipo: "buscar"
@@ -14882,6 +15099,7 @@ function Dashboard() {
     inicialSel: hoja.sel,
     onAgregar: agregar,
     onNoEncontrado: noEnc,
+    onMarca: guardarMio,
     onEtiqueta: t => setHoja({
       tipo: "etiqueta",
       nombre: t,
@@ -14890,12 +15108,10 @@ function Dashboard() {
     onClose: () => setHoja(null)
   }), hoja?.tipo === "etiqueta" && /*#__PURE__*/React.createElement(Etiqueta, {
     nombreInicial: hoja.nombre,
+    previo: hoja.previo,
     onClose: () => setHoja(null),
     onGuardar: f => {
-      setEstado(s => ({
-        ...s,
-        mios: [...s.mios, f]
-      }));
+      guardarMio(f);
       setHoja({
         tipo: "buscar",
         sel: f,
@@ -14908,10 +15124,22 @@ function Dashboard() {
     onGuardar: reemplazar,
     onBorrar: quitar,
     onClose: () => setHoja(null)
-  }), hoja?.tipo === "foto" && /*#__PURE__*/React.createElement(Foto, {
-    comidaInicial: hoja.comida,
-    onAgregar: agregar,
-    onClose: () => setHoja(null)
+  }), hoja?.tipo === "escaner" && /*#__PURE__*/React.createElement(Escaner, {
+    mios: estado.mios,
+    onClose: () => setHoja(null),
+    onListo: (f, nuevo) => {
+      if (nuevo) guardarMio(f);
+      setHoja({
+        tipo: "buscar",
+        sel: f,
+        comida: hoja.comida
+      });
+    },
+    onSinDatos: previo => setHoja({
+      tipo: "etiqueta",
+      previo,
+      comida: hoja.comida
+    })
   }), hoja?.tipo === "semana" && /*#__PURE__*/React.createElement(Semana, {
     semana: semana,
     noEnc: estado.noEnc,
